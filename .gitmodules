@@ -1,0 +1,6 @@
+[submodule "VTP_source_code"]
+	path = VTP_source_code
+	url = git@github.com:balazsfabian/VTP_source_code.git
+[submodule "bsort"]
+	path = bsort
+	url = git@github.com:pelotoncycle/bsort.git
