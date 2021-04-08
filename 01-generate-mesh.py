@@ -271,8 +271,19 @@ clus = pyacvd.Clustering(mesh)
 clus.subdivide(n_sub)
 clus.cluster((n*largeGridScale)**2)
 mesh = clus.create_mesh()
-mesh.save('tmp-'+args.output)
-pv.save_meshio('mesh.obj',mesh)
+
+##########################################
+# Verification with VTP
+##########################################
+print ()
+print ("* Verifying the mesh for use with VTP")
+
+from geodesic import ExactGeodesicMixin
+
+pts = mesh.points
+faces = mesh.faces.reshape((-1,mesh.faces[0]+1))[:,1:]
+vtp = ExactGeodesicMixin(pts,faces)
+distances = vtp.exact_geodesic_distance(0)
 
 print ()
 print (f"* Loading data into {args.output}")
@@ -283,8 +294,6 @@ mesh.field_arrays['lx'] = lx
 mesh.field_arrays['ly'] = ly
 mesh.field_arrays['leaflet'] = (args.leaflet,)
 mesh.save(args.output)
-# DEBUG
-pv.save_meshio('mesh.obj',mesh)
 
 print ("DONE!")
 
