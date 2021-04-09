@@ -17,33 +17,6 @@ from tqdm import tqdm
 
 import uuid
 
-def digitize2d(A,xbins,ybins):
-    """ Digitize a set of points on the 2D plane.
-
-        This function finds the closest grid point
-        index, and thus it is based on a shifted copy
-        of the intervals!
-
-        Example:
-        centers : [0,1,2,3,4,5]
-        bins    : [0, 0.5, 1.5, 2.5, 3.5, 4.5, 5]
-
-        points  : -0.1 --> -1
-                   0.1 --> 0
-                   0.7 --> 1
-                   ...
-                   4.9 --> 5
-                   5.1 --> 6
-    """
-    xb = np.hstack((xbins[0], (xbins[1:] + xbins[:-1]) * 0.5, xbins[-1]))
-    yb = np.hstack((ybins[0], (ybins[1:] + ybins[:-1]) * 0.5, ybins[-1]))
-
-    digi = np.empty(A.shape)
-    digi[:,0] = np.digitize(A[:,0], xb) - 1
-    digi[:,1] = np.digitize(A[:,1], yb) - 1
-
-    return digi.astype(int)
-
 
 def log_samples(start,end,num=50):
     """ start: starting point in linspace (cast to int)
