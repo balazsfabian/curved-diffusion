@@ -273,6 +273,22 @@ clus.cluster((n*largeGridScale)**2)
 mesh = clus.create_mesh()
 
 ##########################################
+# Evaluating curvature
+##########################################
+
+print ()
+print ("* Evaluating the curvature")
+n_iter = 1000
+print (f"    Creating a smoothed copy using {n_iter} Laplacian iterations")
+mesh.smooth(n_iter=n_iter, boundary_smoothing = False, inplace = True)
+
+curvatures = ['Mean', 'Gaussian']
+for c in curvatures:
+    print (f"    Computing {c} curvature")
+    values = mesh.curvature(curv_type=c)
+    mesh.point_arrays[c] = values
+
+##########################################
 # Verification with VTP
 ##########################################
 print ()
@@ -285,8 +301,12 @@ faces = mesh.faces.reshape((-1,mesh.faces[0]+1))[:,1:]
 vtp = ExactGeodesicMixin(pts,faces)
 distances = vtp.exact_geodesic_distance(0)
 
+##########################################
+# Adding metadata
+##########################################
+
 print ()
-print (f"* Loading data into {args.output}")
+print (f"* Loading metadata into {args.output}")
 mesh.field_arrays['topology'] = (args.topology,)
 mesh.field_arrays['trajectory'] = (args.trajectory,)
 mesh.field_arrays['select'] = (args.lg,)
