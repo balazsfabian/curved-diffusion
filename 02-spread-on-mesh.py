@@ -68,7 +68,7 @@ parser.add_argument('--logmin'  , default=1  , type=int  , help="Beginning of lo
 parser.add_argument('--logmax'  , default=500, type=int  , help="End of log-spaced lagtimes (# of frames)")
 parser.add_argument('--logstep' , default=50 , type=int  , help="Stride of log-spaced lagtimes (# of frames)")
 parser.add_argument('--trestart', default=1  , type=int  , help="Time between restarting points (# of frames)")
-parser.add_argument('--maxd'    , default=20 , type=float, help="Max. allowed distance between the continous and discrete positions (angstrom)")
+parser.add_argument('--maxd'    , default=15 , type=float, help="Max. allowed distance between the continous and discrete positions (angstrom)")
 
 args = parser.parse_args()
 
@@ -123,7 +123,6 @@ pts = mesh.points
 neigh = NearestNeighbors(n_neighbors=1,n_jobs=-1)
 neigh.fit(pts)
 
-largest_difference = 0
 with open(p, "ab") as f:
 
     for i in tqdm(range(0,universe.trajectory.n_frames,args.trestart)):
@@ -156,19 +155,40 @@ with open(p, "ab") as f:
             ndx_B = ndx_B.flatten()
 
             # TOO LARGE DEVIATION BETWEEN SURFACE AND MOLECULE
-            current_max_d = max(dA.max(),dB.max())
-            if current_max_d > largest_difference:
-                largest_difference = current_max_d
+            if max(dA.max(),dB.max()) > args.maxd:
+                if dA.max() > dB.max():
+                    max_diff = dA.max()
+                    max_ndx = dA.argmax()
+                    max_conf = As
+                    max_mesh = ndx_A
+                    max_time = i
+                else:
+                    max_diff = dB.max()
+                    max_ndx = dB.argmax()
+                    max_conf = As
+                    max_mesh = ndx_B
+                    max_time = j
+                    
+                print ()
+                print ("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                print ()
+                print (f" Largest distance between mesh and trajectory {max_diff} is larger than the prescribed {args.maxd}")
+                print ()
+                print (f" Mesh point: {max_mesh[max_ndx]}")
+                print (f"      xyz  : {mesh.points[max_mesh[max_ndx]]}")
+                print ()
+                print (f" Traj point: {max_ndx}")
+                print (f"      xyz  : {max_conf[max_ndx]}")
+                print (f"      frame: {max_time}")
+                print ()
+                print ("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                print ()
 
-            if current_max_d > args.maxd:
-                raise ValueError("Too large differences between the mesh and the trajectory!")
-
+            # Save indices to file
             indices = np.minimum(ndx_A,ndx_B), np.maximum(ndx_A,ndx_B), np.zeros(ndx_A.shape)+j-i
             indices = np.array(indices,dtype=np.int32).T
             indices.tofile(f)
 
-
-print (f"* Largest distance between mesh and particle: {largest_difference} A")
 print ()
 print ("* Updating the mesh metadata")
 mesh.field_arrays['lagtimes'] = lagtimes
