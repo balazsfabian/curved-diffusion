@@ -130,11 +130,11 @@ if args.leaflet != 'both':
         indices = lf.groups(1).indices
     selection = universe.atoms[indices]
 
-    print (f"   Selected {selection.__repr__()}")
+    print (f"    Selected {selection.__repr__()}")
 
     if args.ndx:
 
-        print (f"   Writing selection to leaflets.ndx")
+        print (f"    Writing selection to leaflets.ndx")
 
         with mda.selections.gromacs.SelectionWriter('leaflets.ndx', mode='w') as ndx:
             ndx.write(lf.groups(0), name='upper')
@@ -143,7 +143,7 @@ if args.leaflet != 'both':
 else:
     selection = universe.select_atoms(args.lg)
 
-    print (f"   Selected {selection.__repr__()}")
+    print (f"    Selected {selection.__repr__()}")
 
 
 # Average box parameters
@@ -162,8 +162,8 @@ else:
 
 print ()
 print (f"* Box dimensions:")
-print (f"   Lx = {lx}")
-print (f"   Ly = {ly}")
+print (f"    Lx = {lx}")
+print (f"    Ly = {ly}")
 
 
 ##########################################
@@ -180,7 +180,7 @@ grid_x, grid_y = np.mgrid[0:lx:(n+1)*1j, 0:ly:(n+1)*1j]
 grid_x = grid_x[:-1,:-1]
 grid_y = grid_y[:-1,:-1]
 
-print (f"   Using the CoM-s of {selection.residues.__repr__()}")
+print (f"    Using the CoM-s of {selection.residues.__repr__()}")
 
 pos = []
 for ts in universe.trajectory[:10]:
@@ -189,14 +189,14 @@ for ts in universe.trajectory[:10]:
 
 pos = np.vstack(pos)
 
-print (f"   Collected {len(pos)} points for gridding")
+print (f"    Collected {len(pos)} points for gridding")
 
 # xy-coords
 pts = pos[:,0:2]
 
 # z-coord
 if args.flat:
-    print (f"   Projecting onto the Z plane")
+    print (f"    Projecting onto the Z plane")
     z = np.zeros(pos[:,0].shape)
 else:
     z = pos[:,2]
@@ -205,7 +205,7 @@ pts,z = border(pts,z,universe.dimensions[0:3])
 zi = griddata(pts, z, (grid_x, grid_y), method = 'linear')
 
 if args.average:
-    print (f"   Averaging the positions along {args.average}")
+    print (f"    Averaging the positions along {args.average}")
     if args.average == 'x':
         zi = np.tile(zi.mean(axis=0), (n,1) )
     if args.average == 'y':
@@ -260,7 +260,7 @@ large_zi = pbcFunction(large_grid_x.flatten(),large_grid_y.flatten())
 n_sub = 2
 print ()
 print (f"* Re-meshing for more uniform triangle sizes")
-print (f"   Subdividing triangles by a factor of {n_sub}")
+print (f"    Subdividing triangles by a factor of {n_sub}")
 # Mesh points and triangular faces
 vertices = np.array((large_grid_x.flatten(),large_grid_y.flatten(),large_zi.flatten())).T
 faces = Delaunay(vertices[:,:2]).vertices
@@ -287,6 +287,9 @@ for c in curvatures:
     print (f"    Computing {c} curvature")
     values = mesh.curvature(curv_type=c)
     mesh.point_arrays[c] = values
+
+area_ratio = (mesh.compute_cell_sizes().cell_arrays['Area'].sum()/largeGridScale**2) / (lx*ly)
+print (f"    The ratio of surface- and projected areas: {area_ratio}")
 
 ##########################################
 # Verification with VTP
