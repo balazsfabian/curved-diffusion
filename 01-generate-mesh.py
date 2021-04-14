@@ -100,6 +100,7 @@ parser.add_argument('--leaflet', default='both'    , type=CheckLeafType    , hel
 parser.add_argument('--lg'     , default='name PO4', type=str              , help="Atomtype for leaflet-identification. Preferably the headgroup.")
 parser.add_argument('--pts'    , default=100**2    , type=int              , help="Approximate number of meshpoints to use per periodic image.")
 parser.add_argument('--repeat' , default=2         , type=int              , help="Repeate the unit box this many times along the x & y axes.")
+parser.add_argument('--nsub'   , default=3         , type=int              , help="Number of subdivisions in pyacvd before uniformizing the surface")
 parser.add_argument('--output' , default='mesh.vtk', type=str              , help="Name of the output VTK file.")
 parser.add_argument('--average', default=False     , type=CheckAverageAxis , help="Take the average value of the surface along the specified direction ('x'/'y'). Remove artifical faces at the edges.")
 parser.add_argument('--flat'   , default=False     , action='store_true'   , help="Create dummy mesh by setting the z direction to 0.")
@@ -257,10 +258,9 @@ large_zi = pbcFunction(large_grid_x.flatten(),large_grid_y.flatten())
 # Remeshing to get a more uniform triangle size
 ##########################################
 
-n_sub = 2
 print ()
 print (f"* Re-meshing for more uniform triangle sizes")
-print (f"    Subdividing triangles by a factor of {n_sub}")
+print (f"    Subdividing triangles by a factor of {args.nsub}")
 # Mesh points and triangular faces
 vertices = np.array((large_grid_x.flatten(),large_grid_y.flatten(),large_zi.flatten())).T
 faces = Delaunay(vertices[:,:2]).vertices
@@ -268,7 +268,7 @@ mesh = pv.PolyData(vertices, np.insert(faces, 0, 3, axis=1))
 
 # create uniform mesh in 3D
 clus = pyacvd.Clustering(mesh)
-clus.subdivide(n_sub)
+clus.subdivide(args.nsub)
 clus.cluster((n*largeGridScale)**2)
 mesh = clus.create_mesh()
 
