@@ -1,16 +1,14 @@
+import os
 import sys
-import numpy as np
+import argparse
+import itertools
+import multiprocessing as mp
 
+import numpy as np
+import pyvista as pv
 import MDAnalysis as mda
 
 from geodesic import ExactGeodesicMixin
-
-import pyvista as pv
-
-import os
-
-import multiprocessing as mp
-import itertools
 
 
 class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawTextHelpFormatter):
@@ -26,8 +24,12 @@ args = parser.parse_args()
 
 mesh = pv.read(args.mesh)
 
+print (f"* Using mesh {args.mesh}")
+print (" ", mesh)
+
 # Sort the indexfile
 fname = mesh.field_arrays['indexfile'][0]
+print (f"* Sorting the index file {fname}")
 os.system('./bsort/src/bsort -r 12 -k 4 '+fname)
 
 # Create mapping between lagtimes and array indices
