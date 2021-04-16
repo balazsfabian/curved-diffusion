@@ -1,6 +1,8 @@
 #!/home/balazs/.conda/envs/mdanalysis/bin/python
 import sys
 from itertools import cycle
+
+import numpy as np
 import pyvista as pv
 
 def write_xyz(fout, coords, title="", atomtypes=("A",)):
@@ -33,12 +35,26 @@ prop = sys.argv[2]
 
 mesh = pv.read(fn)
 
+# Write an obj file
 if prop == 'obj':
     pv.save_meshio(fn[:-3]+'obj',mesh)
     exit()
 
+# Write an xyz file
 if prop == 'xyz':
     write_xyz(open(fn[:-3]+'xyz','w'), mesh.points, title='meshed surface')
+    exit()
+
+# Print average MSD curve
+if prop == 'msd':
+    try:
+        lagtimes = mesh.field_arrays['lagtimes']
+        for dt in lagtimes:
+            dsum = mesh.point_arrays[f'dsum={dt}']
+            csum = mesh.point_arrays[f'csum={dt}']
+            print (dt, np.nansum(dsum)/np.nansum(csum))
+    except KeyError:
+        print ("This mesh does not contain MSD data!")
     exit()
 
 try:
