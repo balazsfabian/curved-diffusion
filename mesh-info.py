@@ -55,22 +55,13 @@ if prop == 'msd':
             print (dt, np.nansum(dsum)/np.nansum(csum))
     except KeyError:
         print ("This mesh does not contain MSD data!")
-    exit()
+    exit(1)
 
-try:
-    data = mesh.cell_arrays[prop]
-except KeyError:
-    pass
-
-try:
-    data = mesh.point_arrays[prop]
-except KeyError:
-    pass
-
-try:
-    data = mesh.field_arrays[prop]
-except KeyError:
-    pass
-
-for elem in data:
-    print (elem)
+# Access generic data from any source
+data = mesh[prop]
+if data is None:
+    print (f"No attribute named \'{prop}\' in mesh!")
+    exit(1)
+else:
+    for elem in data:
+        print (elem)
