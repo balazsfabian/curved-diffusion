@@ -165,7 +165,7 @@ with open(p, "ab") as f:
                 else:
                     max_diff = dB.max()
                     max_ndx = dB.argmax()
-                    max_conf = As
+                    max_conf = Bs
                     max_mesh = ndx_B
                     max_time = j
                     
