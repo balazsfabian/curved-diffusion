@@ -101,7 +101,7 @@ if leaflet != 'both':
         indices = lf.groups(1).indices
     selection = universe.atoms[indices]
 else:
-    selection = universe.select_atoms(args.lg)
+    selection = universe.select_atoms(select)
 
 print ()
 print (f"* Mapping onto mesh {sys.argv[1]}")
