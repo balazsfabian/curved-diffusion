@@ -30,7 +30,9 @@ print (" ", mesh)
 # Sort the indexfile
 fname = mesh.field_arrays['indexfile'][0]
 print (f"* Sorting the index file {fname}")
-os.system('./bsort/src/bsort -r 12 -k 4 '+fname)
+
+bsort_path = '/home/balazs/Documents/Programs/curved-diffusion/bsort/src/bsort'
+os.system(f'{bsort_path} -r 12 -k 4 {fname}')
 
 # Create mapping between lagtimes and array indices
 lagtimes = np.array(mesh.field_arrays['lagtimes'])
@@ -42,12 +44,12 @@ diffusionMap = np.zeros((mesh.n_points,l_inds.size))
 counterMap = np.zeros((mesh.n_points,l_inds.size))
 
 # Any distance larger than this is considered as an error in vtp
+vtpError = 10 * max(mesh.bounds)
 pts = mesh.points
 faces = mesh.faces.reshape((-1,mesh.faces[0]+1))[:,1:]
 vtp = ExactGeodesicMixin(pts,faces)
-vtpError = 10 * max(mesh.bounds)
 
-
+# Load all sorted values in a single go
 data = np.fromfile(fname,dtype=np.int32).reshape((-1,3))
 
 # IMPORTANT !!! In this function, we use global scoping
@@ -112,4 +114,4 @@ finally:
     for dt in lagtimes:
         mesh.point_arrays["lagtime=" + str(dt)] = diffusionMap[:,ltab[dt]]
     
-    mesh.save(meshFile)
+    mesh.save(args.mesh)
