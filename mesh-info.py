@@ -82,7 +82,7 @@ mesh = pv.read(fn)
 # Wrap properties into the unit cell
 if prop == 'wrap-msd':
     wrap_msd_arrays(mesh)
-    mesh.save('final.vtk')
+    mesh.save(fn)
     exit()
 
 
