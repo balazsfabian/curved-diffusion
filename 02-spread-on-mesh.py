@@ -88,13 +88,11 @@ leaflet = mesh.field_arrays['leaflet'][0]
 lx = mesh.field_arrays['lx'][0]
 ly = mesh.field_arrays['ly'][0]
 
-
-u = mda.Universe(topology)
-lf = LeafletFinder(u, select, pbc=True)
-
 universe = mda.Universe(topology, trajectory)
 
 if leaflet != 'both':
+    lf = LeafletFinder(universe, select, pbc=True)
+    assert len(lf.groups()) == 2, f"Could not separate {trajectory} into upper and lower leaflets..."
     if leaflet == "upper":
         indices = lf.groups(0).indices
     if leaflet == "lower":
@@ -183,6 +181,7 @@ with open(p, "ab") as f:
                 print ()
                 print ("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                 print ()
+                breakpoint()
 
             # Save indices to file
             indices = np.minimum(ndx_A,ndx_B), np.maximum(ndx_A,ndx_B), np.zeros(ndx_A.shape)+j-i
