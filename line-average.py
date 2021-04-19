@@ -44,30 +44,39 @@ ly = mesh.field_arrays['ly'][0]
 # project onto the xy plane
 mesh.project_points_to_plane(origin=(0,0,0), normal=(0,0,1),inplace=True)
 
+# calculate the relevant positions
 if args.direction == 'radial':
-    # Radial distances
     mesh.points[:,0] -= lx/2
     mesh.points[:,1] -= ly/2
-    radial_distances = np.linalg.norm(mesh.points,axis=1)
+    positions = np.linalg.norm(mesh.points,axis=1)
+    hist_range = [0,min(lx,ly)/2]
 
-    # Take the non-normalized values, and bin them
-    for dt in lagtimes:
-        dsum = mesh.point_arrays[f'dsum={dt}']
-        csum = mesh.point_arrays[f'csum={dt}']
+if args.direction == 'x':
+    positions = mesh.points[:,0]
+    hist_range = [0, lx]
 
-        # filter out NaN-s
-        mask =np.isnan(dsum)
-        dsum = dsum[~mask]
-        csum = csum[~mask]
-        rdst = radial_distances[~mask]
+if args.direction == 'y':
+    positions = mesh.points[:,1]
+    hist_range = [0, ly]
 
-        # histogram
-        hist, edges = np.histogram(rdst, bins=args.bins, weights=dsum, range=[0,min(lx,ly)/2]) 
-        norm, _     = np.histogram(rdst, bins=args.bins, weights=csum, range=[0,min(lx,ly)/2]) 
+# Take the non-normalized values, and bin them
+for dt in lagtimes:
+    dsum = mesh.point_arrays[f'dsum={dt}']
+    csum = mesh.point_arrays[f'csum={dt}']
 
-        values = np.divide(hist,norm)
-        centers = (edges[:-1] + edges[1:])/2
-        data = np.vstack((centers,values)).T
+    # filter out NaN-s
+    mask =np.isnan(dsum)
+    dsum = dsum[~mask]
+    csum = csum[~mask]
+    p = positions[~mask]
 
-        np.savetxt(f"{args.name}-{args.direction}-{dt}.dat", data)
+    # histogram
+    hist, edges = np.histogram(p, bins=args.bins, weights=dsum, range=hist_range) 
+    norm, _     = np.histogram(p, bins=args.bins, weights=csum, range=hist_range) 
+
+    values = np.divide(hist,norm)
+    centers = (edges[:-1] + edges[1:])/2
+    data = np.vstack((centers,values)).T
+
+    np.savetxt(f"{args.name}-{args.direction}-{dt}.dat", data)
 
