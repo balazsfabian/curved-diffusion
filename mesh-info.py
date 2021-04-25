@@ -108,7 +108,7 @@ if prop == 'msd':
             print (dt, np.nansum(dsum)/np.nansum(csum))
     except KeyError:
         print ("This mesh does not contain MSD data!")
-    exit(1)
+        exit(1)
 
 
 # Access generic data from any source
