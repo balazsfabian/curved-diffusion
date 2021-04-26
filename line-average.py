@@ -86,7 +86,7 @@ if args.property == 'msd':
 
 
 # Calculate Mean or Gaussian curvature for all lagtimes ----------
-elif args.property in ['Mean','Gaussian']:
+elif args.property in ['Mean','Gaussian','Density']:
     # calculate the relevant positions
     # * use centers of the faces
     points = mesh.cell_centers().points
@@ -104,14 +104,26 @@ elif args.property in ['Mean','Gaussian']:
         positions = points[:,1]
         hist_range = [0, ly]
 
-    # covert point property to cell property
-    prop = mesh.ptc().cell_arrays[args.property]
+    if args.property in ['Mean','Gaussian']:
+        # covert point property to cell property
+        prop = mesh.ptc().cell_arrays[args.property]
+    else:
+        prop = mesh['Density']
+
     area = mesh.compute_cell_sizes(length=False,area=True,volume=False).cell_arrays['Area']
+
+    # filter out NaN-s
+    mask = np.isnan(prop)
+    prop = prop[~mask]
+    area = area[~mask]
+    p = positions[~mask]
+
+    # area-weight the densities to particle numbers
     prop = np.multiply(prop,area)
 
     # area-weighted curvature values
-    hist, edges = np.histogram(positions, bins=args.bins, weights=prop, range=hist_range)
-    norm, _     = np.histogram(positions, bins=args.bins, weights=area, range=hist_range)
+    hist, edges = np.histogram(p, bins=args.bins, weights=prop, range=hist_range)
+    norm, _     = np.histogram(p, bins=args.bins, weights=area, range=hist_range)
 
     values = np.divide(hist,norm)
     centers = (edges[:-1] + edges[1:])/2
