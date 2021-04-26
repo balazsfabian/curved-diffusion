@@ -1,12 +1,11 @@
-import numpy as np
-import MDAnalysis as mda
 import argparse
-from MDAnalysis.analysis.leaflet import LeafletFinder
-import pyvista as pv
-
-import sys
 
 import trimesh
+import numpy as np
+import pyvista as pv
+import MDAnalysis as mda
+from MDAnalysis.analysis.leaflet import LeafletFinder
+from tqdm import tqdm
 
 
 class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawTextHelpFormatter):
@@ -26,7 +25,6 @@ desc = """Calculate density on surface mesh.
 
 parser = argparse.ArgumentParser(description=desc, formatter_class=CustomFormatter)
 parser.add_argument('mesh')
-parser.add_argument('topology')
 parser.add_argument('trajectory')
 # parser.add_argument('--leaflet', default='both', type=CheckLeafType, help="Leaflet to mesh. The default value creates a single mesh of both layers.")
 # parser.add_argument('--lg', default='name PO4', type=str, help="Atomtype for leaflet-identification. Preferably the headgroup.")
@@ -70,7 +68,7 @@ else:
     selection = universe.select_atoms(select)
 
 print ()
-print (f"* Calculatin density on mesh {sys.argv[1]}")
+print (f"* Calculating density on mesh {args.mesh}")
 print (f"   topology: {topology}")
 print (f"   trajectory: {args.trajectory}")
 print (f"   leaflet: \'{leaflet}\' based on group {select}")
@@ -80,8 +78,7 @@ print (f"   Selected {selection.__repr__()}")
 cntFrame = 0
 hist = np.zeros(len(faces))
 try:
-    for ts in universe.trajectory[::10]:
-        print (ts)
+    for ts in tqdm(universe.trajectory):
         cntFrame += 1
         pos = [res.atoms.center_of_mass() for res in selection.residues]
     
