@@ -106,6 +106,7 @@ if prop == 'msd':
             dsum = mesh.point_arrays[f'dsum={dt}']
             csum = mesh.point_arrays[f'csum={dt}']
             print (dt, np.nansum(dsum)/np.nansum(csum))
+        exit()
     except KeyError:
         print ("This mesh does not contain MSD data!")
         exit(1)
