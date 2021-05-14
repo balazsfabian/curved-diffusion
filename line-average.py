@@ -38,7 +38,6 @@ args = parser.parse_args()
 
 mesh = pv.read(args.mesh)
 
-lagtimes = mesh.field_arrays['lagtimes']
 lx = mesh.field_arrays['lx'][0]
 ly = mesh.field_arrays['ly'][0]
     
@@ -47,6 +46,7 @@ mesh.project_points_to_plane(origin=(0,0,0), normal=(0,0,1),inplace=True)
 
 # Calculate MSD for all lagtimes ------------------------------
 if args.property == 'msd':
+    lagtimes = mesh.field_arrays['lagtimes']
     # calculate the relevant positions
     if args.direction == 'radial':
         mesh.points[:,0] -= lx/2
