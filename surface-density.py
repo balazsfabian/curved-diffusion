@@ -26,6 +26,9 @@ desc = """Calculate density on surface mesh.
 parser = argparse.ArgumentParser(description=desc, formatter_class=CustomFormatter)
 parser.add_argument('mesh')
 parser.add_argument('trajectory')
+parser.add_argument('--start'    , default=None    , type=int            , help="First frame to analyze.")
+parser.add_argument('--step'     , default=None    , type=int            , help="Skip every n frames.")
+parser.add_argument('--stop'     , default=None    , type=int            , help="Last frame to analyze.")
 # parser.add_argument('--leaflet', default='both', type=CheckLeafType, help="Leaflet to mesh. The default value creates a single mesh of both layers.")
 # parser.add_argument('--lg', default='name PO4', type=str, help="Atomtype for leaflet-identification. Preferably the headgroup.")
 
@@ -79,7 +82,10 @@ print (f"   Selected {selection.__repr__()}")
 cntFrame = 0
 hist = np.zeros(len(faces))
 try:
-    for ts in tqdm(universe.trajectory):
+    # setting up a slice
+    sl = slice(args.start,args.stop,args.step)
+
+    for ts in tqdm(universe.trajectory[sl]):
         cntFrame += 1
 
         pos = [res.atoms.center_of_mass() for res in selection.residues]
