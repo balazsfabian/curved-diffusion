@@ -85,13 +85,14 @@ topology = mesh.field_arrays['topology'][0]
 trajectory = mesh.field_arrays['trajectory'][0]
 select = mesh.field_arrays['select'][0]
 leaflet = mesh.field_arrays['leaflet'][0]
+cutoff = mesh.field_arrays['cutoff'][0]
 lx = mesh.field_arrays['lx'][0]
 ly = mesh.field_arrays['ly'][0]
 
 universe = mda.Universe(topology, trajectory)
 
 if leaflet != 'both':
-    lf = LeafletFinder(universe, select, pbc=True)
+    lf = LeafletFinder(universe, select, pbc=True, cutoff=cutoff)
     assert len(lf.groups()) == 2, f"Could not separate {trajectory} into upper and lower leaflets..."
     if leaflet == "upper":
         indices = lf.groups(0).indices

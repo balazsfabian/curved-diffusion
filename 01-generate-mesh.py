@@ -98,6 +98,7 @@ parser.add_argument('topology')
 parser.add_argument('trajectory')
 parser.add_argument('--leaflet', default='both'    , type=CheckLeafType    , help="Leaflet to mesh. The default value creates a single mesh of both layers.")
 parser.add_argument('--lg'     , default='name PO4', type=str              , help="Atomtype for leaflet-identification. Preferably the headgroup.")
+parser.add_argument('--cutoff' , default=12        , type=float            , help="Cutoff used in leaflet identification. Recommended AA:15, CG: 12")
 parser.add_argument('--pts'    , default=100**2    , type=int              , help="Approximate number of meshpoints to use per periodic image.")
 parser.add_argument('--repeat' , default=2         , type=int              , help="Repeate the unit box this many times along the x & y axes.")
 parser.add_argument('--nsub'   , default=3         , type=int              , help="Number of subdivisions in pyacvd before uniformizing the surface")
@@ -123,7 +124,7 @@ if args.leaflet != 'both':
 
     print (f"* Identifying {args.leaflet} leaflet:")
 
-    lf = LeafletFinder(universe, args.lg, pbc=True)
+    lf = LeafletFinder(universe, args.lg, pbc=True, cutoff=args.cutoff)
     assert len(lf.groups()) == 2, f"Could not separate {args.trajectory} into upper and lower leaflets..."
     if args.leaflet == 'upper':
         indices = lf.groups(0).indices

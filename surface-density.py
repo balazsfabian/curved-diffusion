@@ -41,6 +41,7 @@ topology = mesh.field_arrays['topology'][0]
 trajectory = args.trajectory
 select = mesh.field_arrays['select'][0]
 leaflet = mesh.field_arrays['leaflet'][0]
+cutoff = mesh.field_arrays['cutoff'][0]
 lx = mesh.field_arrays['lx'][0]
 ly = mesh.field_arrays['ly'][0]
 
@@ -57,7 +58,7 @@ universe = mda.Universe(topology, trajectory)
 
 
 if leaflet != 'both':
-    lf = LeafletFinder(universe, select, pbc=True)
+    lf = LeafletFinder(universe, select, pbc=True, cutoff=cutoff)
     assert len(lf.groups()) == 2, f"Could not separate {trajectory} into upper and lower leaflets..."
     if leaflet == "upper":
         indices = lf.groups(0).indices
@@ -80,6 +81,7 @@ hist = np.zeros(len(faces))
 try:
     for ts in tqdm(universe.trajectory):
         cntFrame += 1
+
         pos = [res.atoms.center_of_mass() for res in selection.residues]
     
         _, _, triangle_id = tmesh.nearest.on_surface(pos)
