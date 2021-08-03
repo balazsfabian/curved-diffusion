@@ -55,6 +55,17 @@ def make_surface_function(func,lx,ly):
     return interp
 
 
+def remove_dangling(mesh):
+    """ Remove dangling points from meshes """
+
+    faces = mesh.faces.reshape(-1,4)[:,1:]
+    verts_in_faces = set(faces.flatten())
+
+    if len(verts_in_faces) != mesh.number_of_points:
+        dangling = list( set(range(mesh.number_of_points)) - verts_in_faces )
+        mesh.remove_points(dangling, inplace=True)
+
+
 class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawTextHelpFormatter):
     pass
 
@@ -185,8 +196,9 @@ grid_y = grid_y[:-1,:-1]
 print (f"    Using the CoM-s of {selection.residues.__repr__()}")
 
 pos = []
-for ts in universe.trajectory[:10]:
-    p = np.array([res.atoms.center_of_mass() for res in selection.residues])
+for ts in universe.trajectory[:50]:
+#   p = np.array([res.atoms.center_of_mass() for res in selection.residues])
+    p = selection.positions
     pos.append(p)
 
 pos = np.vstack(pos)
@@ -255,6 +267,7 @@ large_grid_y = large_grid_y[:-1,:-1]
 
 large_zi = pbcFunction(large_grid_x.flatten(),large_grid_y.flatten())
 
+
 ##########################################
 # Remeshing to get a more uniform triangle size
 ##########################################
@@ -272,6 +285,7 @@ clus = pyacvd.Clustering(mesh)
 clus.subdivide(args.nsub)
 clus.cluster((n*largeGridScale)**2)
 mesh = clus.create_mesh()
+
 
 ##########################################
 # Evaluating curvature
@@ -292,18 +306,71 @@ for c in curvatures:
 area_ratio = (mesh.compute_cell_sizes().cell_arrays['Area'].sum()/largeGridScale**2) / (lx*ly)
 print (f"    The ratio of surface- and projected areas: {area_ratio}")
 
+
 ##########################################
 # Verification with VTP
 ##########################################
 print ()
 print ("* Verifying the mesh for use with VTP")
 
+from collections import Counter
 from geodesic import ExactGeodesicMixin
+
+remove_dangling(mesh)
+
+# Do while redundant faces exist
+while True:
+    # get the faces with one row per face (includes vtk padding)
+    faces = mesh.faces.reshape(-1, 4)
+
+    # extract all edges (triangle is ABC)
+    edges0 = faces[:, (1,2)]  # edges AB
+    edges1 = faces[:, (1,3)]  # edges AC
+    edges2 = faces[:, (2,3)]  # edges BC
+    edges = np.vstack((edges0, edges1, edges2))
+    
+    edgeset = [frozenset(e) for e in  edges]
+    possibly_redundant = Counter(edgeset).most_common()[0]
+
+    if possibly_redundant[1] > 2:
+        print (f"     Redundant half edges found! Eliminating...")
+ 
+        # collecting all faces contributing to the redundant edge
+        edges0 = [set(e) for e in edges0]
+        edges1 = [set(e) for e in edges1]
+        edges2 = [set(e) for e in edges2]
+ 
+        redundant_faces = []
+        for triplet in zip(edges0,edges1,edges2):
+ 
+            if possibly_redundant[0] in triplet:
+                redundant_faces.append(set().union(*triplet))
+ 
+        # determine and remove the redundant vertex of the 3 possibilites
+        rf = redundant_faces
+        redundant_vertices = rf[2].difference(rf[0]), rf[1].difference(rf[0]), rf[0].difference(rf[1])
+        redundant_vertices = [list(elem)[0] for elem in redundant_vertices]
+ 
+        redundant_vertex = None
+        for vert in redundant_vertices:
+            if (edges == vert).sum() == 2:
+                redundant_vertex = vert
+ 
+        new_vertices = np.delete(mesh.points,redundant_vertex,0)
+        new_faces = np.array([f for f in faces if redundant_vertex not in f[1:]])
+        new_faces[:,1:][new_faces[:,1:] > redundant_vertex] -= 1
+ 
+        mesh = pv.PolyData(new_vertices, new_faces)
+
+    else:
+        break
+
 
 pts = mesh.points
 faces = mesh.faces.reshape((-1,mesh.faces[0]+1))[:,1:]
 vtp = ExactGeodesicMixin(pts,faces)
 distances = vtp.exact_geodesic_distance(0)
+
 
 ##########################################
 # Adding metadata
@@ -317,27 +384,8 @@ mesh.field_arrays['select'] = (args.lg,)
 mesh.field_arrays['lx'] = lx
 mesh.field_arrays['ly'] = ly
 mesh.field_arrays['leaflet'] = (args.leaflet,)
+mesh.field_arrays['cutoff'] = (args.cutoff,)
 mesh.save(args.output)
 
 print ("DONE!")
 
-#
-# NOTE: this section seems unnecessary. If redundant half-edges appear, try using a different mesh size first!
-#
-# # remove redundant half-edges. Not an elegant solution to a problem I refuse to understand now
-# faces = Delaunay(mesh.points[:,:2]).vertices
-# mesh = pv.PolyData(mesh.points, np.insert(faces, 0, 3, axis=1))
-# mesh.save('tmp2-'+args.output)
-# 
-# # remove vertical faces along the edges
-# if args.average:
-#     print ()
-#     print (f"* Removing vertical faces along {args.average}")
-#     mesh = mesh.compute_normals()
-#     normals = mesh.cell_arrays['Normals']
-#     if args.average == 'x':
-#         norm = np.abs(normals[:,0])
-#     if args.average == 'y':
-#         norm = np.abs(normals[:,1])
-#     faces = faces[norm < 0.5]
-#     mesh = pv.PolyData(mesh.points, np.insert(faces, 0, 3, axis=1))
