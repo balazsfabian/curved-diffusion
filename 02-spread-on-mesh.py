@@ -129,7 +129,8 @@ with open(p, "ab") as f:
         universe.trajectory[i]
 
         # Real CoM positions of the particles @lagtime=0
-        Acont = np.array([res.atoms.center_of_mass() for res in selection.residues])
+#       Acont = np.array([res.atoms.center_of_mass() for res in selection.residues])
+        Acont = np.array([res.atoms.center_of_geometry() for res in selection.residues])
     
         # Loop over all lagtimes
         for dt in lagtimes: 
@@ -138,7 +139,8 @@ with open(p, "ab") as f:
                 break
 
             universe.trajectory[j]
-            Bcont = np.array([res.atoms.center_of_mass() for res in selection.residues])
+#           Bcont = np.array([res.atoms.center_of_mass() for res in selection.residues])
+            Bcont = np.array([res.atoms.center_of_geometry() for res in selection.residues])
 
             M = np.minimum(Acont,Bcont)
             shift = np.floor_divide(M,[lx,ly,np.inf])
@@ -182,7 +184,6 @@ with open(p, "ab") as f:
                 print ()
                 print ("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                 print ()
-                breakpoint()
 
             # Save indices to file
             indices = np.minimum(ndx_A,ndx_B), np.maximum(ndx_A,ndx_B), np.zeros(ndx_A.shape)+j-i
