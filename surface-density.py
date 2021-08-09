@@ -88,7 +88,8 @@ try:
     for ts in tqdm(universe.trajectory[sl]):
         cntFrame += 1
 
-        pos = [res.atoms.center_of_mass() for res in selection.residues]
+#       pos = [res.atoms.center_of_mass() for res in selection.residues]
+        pos = selection.positions
     
         _, _, triangle_id = tmesh.nearest.on_surface(pos)
 
