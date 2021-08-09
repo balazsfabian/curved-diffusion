@@ -97,6 +97,24 @@ if prop == 'xyz':
     write_xyz(open(fn[:-3]+'xyz','w'), mesh.points, title='meshed surface')
     exit()
 
+# Print radial distance with lx/2,lx/2 as the origin
+if prop == 'radial':
+    lx = mesh.field_arrays['lx'][0]
+    ly = mesh.field_arrays['ly'][0]
+    points = mesh.points[:,:2]
+    points[:,0] -= lx/2
+    points[:,1] -= ly/2
+    positions = np.linalg.norm(points,axis=1)
+    for elem in positions:
+        print (elem)
+    exit()
+
+# Print radial distance with lx/2,lx/2 as the origin
+if prop == 'Density':
+    values = mesh.ctp().point_arrays[prop]
+    for elem in values:
+        print (elem)
+    exit()
 
 # Print average MSD curve
 if prop == 'msd':
