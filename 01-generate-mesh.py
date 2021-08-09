@@ -66,6 +66,59 @@ def remove_dangling(mesh):
         mesh.remove_points(dangling, inplace=True)
 
 
+def remove_redundant(mesh):
+    # Do while redundant faces exist
+    while True:
+        # get the faces with one row per face (includes vtk padding)
+        faces = mesh.faces.reshape(-1, 4)
+    
+        # extract all edges (triangle is ABC)
+        edges0 = faces[:, (1,2)]  # edges AB
+        edges1 = faces[:, (1,3)]  # edges AC
+        edges2 = faces[:, (2,3)]  # edges BC
+        edges = np.vstack((edges0, edges1, edges2))
+        
+        edgeset = [frozenset(e) for e in  edges]
+        possibly_redundant = Counter(edgeset).most_common()[0]
+    
+        if possibly_redundant[1] > 2:
+            print (f"     Redundant half edges found! Eliminating...")
+     
+            # collecting all faces contributing to the redundant edge
+            edges0 = [set(e) for e in edges0]
+            edges1 = [set(e) for e in edges1]
+            edges2 = [set(e) for e in edges2]
+     
+            redundant_faces = []
+            for triplet in zip(edges0,edges1,edges2):
+     
+                if possibly_redundant[0] in triplet:
+                    redundant_faces.append(set().union(*triplet))
+     
+            # determine and remove the redundant vertex of the 3 possibilites
+            rf = redundant_faces
+            redundant_vertices = rf[2].difference(rf[0]), rf[1].difference(rf[0]), rf[0].difference(rf[1])
+            redundant_vertices = [list(elem)[0] for elem in redundant_vertices]
+     
+            # Remove the vertex with the lowest connectivity
+            redundant_vertex = None
+            min_connection = np.inf
+            for vert in redundant_vertices:
+                if (edges == vert).sum() < min_connection:
+                    redundant_vertex = vert
+                    min_connection = (edges == vert).sum()
+     
+            new_vertices = np.delete(mesh.points,redundant_vertex,0)
+            new_faces = np.array([f for f in faces if redundant_vertex not in f[1:]])
+            new_faces[:,1:][new_faces[:,1:] > redundant_vertex] -= 1
+     
+            mesh = pv.PolyData(new_vertices, new_faces)
+    
+        else:
+            break
+    return mesh
+
+
 class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawTextHelpFormatter):
     pass
 
@@ -116,7 +169,7 @@ parser.add_argument('--nsub'   , default=3         , type=int              , hel
 parser.add_argument('--output' , default='mesh.vtk', type=str              , help="Name of the output VTK file.")
 parser.add_argument('--average', default=False     , type=CheckAverageAxis , help="Take the average value of the surface along the specified direction ('x'/'y'). Remove artifical faces at the edges.")
 parser.add_argument('--flat'   , default=False     , action='store_true'   , help="Create dummy mesh by setting the z direction to 0.")
-parser.add_argument('--ndx'    , default=False     , action='store_true'   , help="Write Gromacs-style ndx files with leaflets")
+parser.add_argument('--ndx'    , default=False     , type=str              , help="Write Gromacs-style ndx files with leaflets")
 parser.add_argument('--lxy'    , action='append'   , nargs=2, type=float   , help="Specify the lx and ly dimensions of the topological feature")
 
 args = parser.parse_args()
@@ -149,7 +202,7 @@ if args.leaflet != 'both':
 
         print (f"    Writing selection to leaflets.ndx")
 
-        with mda.selections.gromacs.SelectionWriter('leaflets.ndx', mode='w') as ndx:
+        with mda.selections.gromacs.SelectionWriter(args.ndx, mode='w') as ndx:
             ndx.write(lf.groups(0), name='upper')
             ndx.write(lf.groups(1), name='lower')
 
@@ -288,23 +341,14 @@ mesh = clus.create_mesh()
 
 
 ##########################################
-# Evaluating curvature
+# Smoothing the surface
 ##########################################
 
 print ()
-print ("* Evaluating the curvature")
+print ("* Laplacian smoothing of the curvature")
 n_iter = 1000
 print (f"    Creating a smoothed copy using {n_iter} Laplacian iterations")
 mesh.smooth(n_iter=n_iter, boundary_smoothing = False, inplace = True)
-
-curvatures = ['Mean', 'Gaussian']
-for c in curvatures:
-    print (f"    Computing {c} curvature")
-    values = mesh.curvature(curv_type=c)
-    mesh.point_arrays[c] = values
-
-area_ratio = (mesh.compute_cell_sizes().cell_arrays['Area'].sum()/largeGridScale**2) / (lx*ly)
-print (f"    The ratio of surface- and projected areas: {area_ratio}")
 
 
 ##########################################
@@ -317,59 +361,31 @@ from collections import Counter
 from geodesic import ExactGeodesicMixin
 
 remove_dangling(mesh)
-
-# Do while redundant faces exist
-while True:
-    # get the faces with one row per face (includes vtk padding)
-    faces = mesh.faces.reshape(-1, 4)
-
-    # extract all edges (triangle is ABC)
-    edges0 = faces[:, (1,2)]  # edges AB
-    edges1 = faces[:, (1,3)]  # edges AC
-    edges2 = faces[:, (2,3)]  # edges BC
-    edges = np.vstack((edges0, edges1, edges2))
+mesh = remove_redundant(mesh)
+remove_dangling(mesh)
     
-    edgeset = [frozenset(e) for e in  edges]
-    possibly_redundant = Counter(edgeset).most_common()[0]
-
-    if possibly_redundant[1] > 2:
-        print (f"     Redundant half edges found! Eliminating...")
- 
-        # collecting all faces contributing to the redundant edge
-        edges0 = [set(e) for e in edges0]
-        edges1 = [set(e) for e in edges1]
-        edges2 = [set(e) for e in edges2]
- 
-        redundant_faces = []
-        for triplet in zip(edges0,edges1,edges2):
- 
-            if possibly_redundant[0] in triplet:
-                redundant_faces.append(set().union(*triplet))
- 
-        # determine and remove the redundant vertex of the 3 possibilites
-        rf = redundant_faces
-        redundant_vertices = rf[2].difference(rf[0]), rf[1].difference(rf[0]), rf[0].difference(rf[1])
-        redundant_vertices = [list(elem)[0] for elem in redundant_vertices]
- 
-        redundant_vertex = None
-        for vert in redundant_vertices:
-            if (edges == vert).sum() == 2:
-                redundant_vertex = vert
- 
-        new_vertices = np.delete(mesh.points,redundant_vertex,0)
-        new_faces = np.array([f for f in faces if redundant_vertex not in f[1:]])
-        new_faces[:,1:][new_faces[:,1:] > redundant_vertex] -= 1
- 
-        mesh = pv.PolyData(new_vertices, new_faces)
-
-    else:
-        break
-
 
 pts = mesh.points
 faces = mesh.faces.reshape((-1,mesh.faces[0]+1))[:,1:]
 vtp = ExactGeodesicMixin(pts,faces)
 distances = vtp.exact_geodesic_distance(0)
+
+
+##########################################
+# Evaluating curvature
+##########################################
+
+print ()
+print ("* Evaluating the curvature")
+
+curvatures = ['Mean', 'Gaussian']
+for c in curvatures:
+    print (f"    Computing {c} curvature")
+    values = mesh.curvature(curv_type=c)
+    mesh.point_arrays[c] = values
+
+area_ratio = (mesh.compute_cell_sizes().cell_arrays['Area'].sum()/largeGridScale**2) / (lx*ly)
+print (f"    The ratio of surface- and projected areas: {area_ratio}")
 
 
 ##########################################
