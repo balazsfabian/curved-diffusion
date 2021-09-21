@@ -69,6 +69,7 @@ parser.add_argument('--logmax'  , default=500, type=int  , help="End of log-spac
 parser.add_argument('--logstep' , default=50 , type=int  , help="Stride of log-spaced lagtimes (# of frames)")
 parser.add_argument('--trestart', default=1  , type=int  , help="Time between restarting points (# of frames)")
 parser.add_argument('--maxd'    , default=15 , type=float, help="Max. allowed distance between the continous and discrete positions (angstrom)")
+parser.add_argument('--lg'      , default=None, type=str              , help="Atomtype for leaflet-identification. Preferably the headgroup.")
 
 args = parser.parse_args()
 
@@ -83,7 +84,11 @@ mesh = pv.read(args.mesh)
 
 topology = mesh.field_arrays['topology'][0]
 trajectory = mesh.field_arrays['trajectory'][0]
-select = mesh.field_arrays['select'][0]
+if args.lg:
+    select = args.lg
+else:
+    select = mesh.field_arrays['select'][0]
+
 leaflet = mesh.field_arrays['leaflet'][0]
 cutoff = mesh.field_arrays['cutoff'][0]
 lx = mesh.field_arrays['lx'][0]
