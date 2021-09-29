@@ -29,6 +29,7 @@ parser.add_argument('trajectory')
 parser.add_argument('--start'    , default=None    , type=int            , help="First frame to analyze.")
 parser.add_argument('--step'     , default=None    , type=int            , help="Skip every n frames.")
 parser.add_argument('--stop'     , default=None    , type=int            , help="Last frame to analyze.")
+parser.add_argument('--lg'       , default=None    , type=str            , help="Use this group for the density calculation. If not specified, then use to one in the mesh.")
 # parser.add_argument('--leaflet', default='both', type=CheckLeafType, help="Leaflet to mesh. The default value creates a single mesh of both layers.")
 # parser.add_argument('--lg', default='name PO4', type=str, help="Atomtype for leaflet-identification. Preferably the headgroup.")
 
@@ -42,7 +43,10 @@ mesh = pv.read(args.mesh)
 
 topology = mesh.field_arrays['topology'][0]
 trajectory = args.trajectory
-select = mesh.field_arrays['select'][0]
+if args.lg:
+    select = args.lg
+else:
+    select = mesh.field_arrays['select'][0]
 leaflet = mesh.field_arrays['leaflet'][0]
 cutoff = mesh.field_arrays['cutoff'][0]
 lx = mesh.field_arrays['lx'][0]
